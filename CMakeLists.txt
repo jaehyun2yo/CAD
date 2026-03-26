@@ -59,6 +59,7 @@ add_library(yjcad-core STATIC
     # UI
     src/ui/cad_canvas.cpp
     src/ui/tool_manager.cpp
+    src/ui/domusong_panel.cpp
     src/ui/tools/draw_line_tool.cpp
 )
 

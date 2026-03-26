@@ -15,6 +15,7 @@
 #include "core/geometry/operations.h"
 #include "ui/cad_canvas.h"
 #include "ui/tool_manager.h"
+#include "ui/domusong_panel.h"
 
 using namespace yjcad;
 
@@ -52,6 +53,16 @@ int main(int argc, char* argv[]) {
     auto* canvas = new CadCanvas(doc);
     window.setCentralWidget(canvas);
 
+    // ── 도무송 Panel (Right dock) ──
+    auto* domusongPanel = new DomusongPanel(doc, canvas);
+    auto* dockWidget = new QDockWidget("도무송", &window);
+    dockWidget->setWidget(domusongPanel);
+    dockWidget->setMinimumWidth(260);
+    dockWidget->setStyleSheet("QDockWidget { color: #cccccc; }");
+    window.addDockWidget(Qt::RightDockWidgetArea, dockWidget);
+
+    // (pipeline signal connected after helper lambdas below)
+
     // ── Status bar ──
     auto* coordLabel = new QLabel("좌표: (0.00, 0.00)");
     auto* layerLabel = new QLabel("레이어: 0");
@@ -82,6 +93,12 @@ int main(int argc, char* argv[]) {
     auto updateEntityCount = [&]() {
         entityCountLabel->setText(QString("엔티티: %1").arg(doc.entityCount()));
     };
+
+    // Connect domusong panel signal (after helpers are defined)
+    QObject::connect(domusongPanel, &DomusongPanel::pipelineCompleted, [&]() {
+        updateEntityCount();
+        updateTitle();
+    });
 
     // ── File menu ──
     auto* fileMenu = window.menuBar()->addMenu("파일(&F)");
