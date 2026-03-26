@@ -185,6 +185,7 @@ int main(int argc, char* argv[]) {
 
     drawMenu->addAction("선(&L)", [&]() { setTool(ToolMode::DrawLine, "선 그리기"); }, QKeySequence("L"));
     drawMenu->addAction("원(&C)", [&]() { setTool(ToolMode::DrawCircle, "원 그리기"); }, QKeySequence("C"));
+    drawMenu->addAction("폴리라인(&P)", [&]() { setTool(ToolMode::DrawPolyline, "폴리라인 그리기"); }, QKeySequence("P"));
 
     // ── Edit menu additions ──
     auto* modifyMenu = window.menuBar()->addMenu("수정(&M)");

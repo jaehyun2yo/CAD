@@ -1,4 +1,5 @@
 #include "tool_manager.h"
+#include "tools/move_tool.h"
 
 namespace yjcad {
 
@@ -14,6 +15,8 @@ ToolManager::ToolManager(Document& doc, CadCanvas* canvas)
     reg(ToolMode::DrawLine, std::make_unique<DrawLineTool>());
     reg(ToolMode::DrawCircle, std::make_unique<DrawCircleTool>());
     reg(ToolMode::Delete, std::make_unique<DeleteTool>());
+    reg(ToolMode::Move, std::make_unique<MoveTool>());
+    reg(ToolMode::DrawPolyline, std::make_unique<DrawPolylineTool>());
     // Select mode has no dedicated tool — handled by CadCanvas directly
 }
 
