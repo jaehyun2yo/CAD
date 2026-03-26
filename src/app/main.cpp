@@ -203,6 +203,8 @@ int main(int argc, char* argv[]) {
     }, QKeySequence("Delete"));
 
     modifyMenu->addAction("이동(&M)", [&]() { setTool(ToolMode::Move, "이동"); }, QKeySequence("M"));
+    modifyMenu->addAction("복사(&C)", [&]() { setTool(ToolMode::Copy, "복사"); }, QKeySequence("Shift+C"));
+    modifyMenu->addAction("회전(&R)", [&]() { setTool(ToolMode::Rotate, "회전"); }, QKeySequence("R"));
 
     // ── 도무송 menu (핵심!) ──
     auto* domusongMenu = window.menuBar()->addMenu("도무송(&U)");

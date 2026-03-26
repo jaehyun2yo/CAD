@@ -2,6 +2,7 @@
 
 #include "core/renderer/gl_renderer.h"
 #include "core/renderer/camera.h"
+#include "core/renderer/snap.h"
 #include "core/document/document.h"
 #include "ui/tool_manager.h"
 #include <QOpenGLWidget>
@@ -48,6 +49,7 @@ private:
     Camera m_camera;
     GlRenderer m_renderer;
     std::unique_ptr<ToolManager> m_toolMgr;
+    std::unique_ptr<SnapEngine> m_snap;
 
     // Mouse state
     bool m_panning = false;

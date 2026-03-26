@@ -61,6 +61,10 @@ bool GlRenderer::initialize() {
     m_gridVao.create();
     m_gridVbo.create();
 
+    // Preview VAO/VBO
+    m_previewVao.create();
+    m_previewVbo.create();
+
     m_initialized = true;
     return true;
 }
@@ -295,7 +299,52 @@ void GlRenderer::render(const Camera& camera) {
         m_entityVao.release();
     }
 
+    // Draw preview (rubber-band lines) on top
+    if (m_previewVertexCount > 0) {
+        m_previewVao.bind();
+        glDrawArrays(GL_LINES, 0, m_previewVertexCount);
+        m_previewVao.release();
+    }
+
     m_shader->release();
+}
+
+void GlRenderer::updatePreview(const std::vector<std::pair<Point2D, Point2D>>& lines,
+                                const Point2D* snapPoint) {
+    if (!m_initialized) return;
+
+    std::vector<GlVertex> verts;
+    // Preview lines in bright green
+    for (const auto& [p1, p2] : lines) {
+        verts.push_back({static_cast<float>(p1.x), static_cast<float>(p1.y), 0.0f, 1.0f, 0.5f});
+        verts.push_back({static_cast<float>(p2.x), static_cast<float>(p2.y), 0.0f, 1.0f, 0.5f});
+    }
+
+    // Snap indicator: small cross at snap point
+    if (snapPoint) {
+        float sx = static_cast<float>(snapPoint->x);
+        float sy = static_cast<float>(snapPoint->y);
+        float sz = 2.0f; // cross size in world units (will scale with zoom)
+        verts.push_back({sx - sz, sy, 1.0f, 1.0f, 0.0f}); // yellow cross
+        verts.push_back({sx + sz, sy, 1.0f, 1.0f, 0.0f});
+        verts.push_back({sx, sy - sz, 1.0f, 1.0f, 0.0f});
+        verts.push_back({sx, sy + sz, 1.0f, 1.0f, 0.0f});
+    }
+
+    m_previewVertexCount = static_cast<int>(verts.size());
+
+    m_previewVao.bind();
+    m_previewVbo.bind();
+    if (!verts.empty()) {
+        m_previewVbo.allocate(verts.data(), static_cast<int>(verts.size() * sizeof(GlVertex)));
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(GlVertex), nullptr);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GlVertex),
+                              reinterpret_cast<void*>(2 * sizeof(float)));
+    }
+    m_previewVbo.release();
+    m_previewVao.release();
 }
 
 void GlRenderer::cleanup() {
@@ -304,6 +353,8 @@ void GlRenderer::cleanup() {
     m_entityVao.destroy();
     m_gridVbo.destroy();
     m_gridVao.destroy();
+    m_previewVbo.destroy();
+    m_previewVao.destroy();
     m_shader.reset();
     m_initialized = false;
 }

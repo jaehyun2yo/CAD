@@ -82,6 +82,17 @@ private:
     bool m_gridEnabled = true;
     double m_gridSpacing = 10.0;
 
+    // Preview geometry (rubber-band lines from tools)
+    QOpenGLVertexArrayObject m_previewVao;
+    QOpenGLBuffer m_previewVbo{QOpenGLBuffer::VertexBuffer};
+    int m_previewVertexCount = 0;
+
+public:
+    /// Update preview lines (tool rubber-band, snap indicator)
+    void updatePreview(const std::vector<std::pair<Point2D, Point2D>>& lines,
+                       const Point2D* snapPoint = nullptr);
+
+private:
     // Cached entity vertices for partial updates
     std::vector<GlVertex> m_entityVerts;
 };

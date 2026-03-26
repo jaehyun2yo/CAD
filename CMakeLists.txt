@@ -61,6 +61,9 @@ add_library(yjcad-core STATIC
     src/ui/tool_manager.cpp
     src/ui/domusong_panel.cpp
     src/ui/tools/draw_line_tool.cpp
+    src/ui/tools/move_tool.cpp
+    src/ui/tools/copy_rotate_tool.cpp
+    src/core/renderer/snap.cpp
 )
 
 target_include_directories(yjcad-core PUBLIC
@@ -112,6 +115,7 @@ if(GTest_FOUND)
         tests/core/document/test_command.cpp
         tests/core/fileio/test_dxf.cpp
         tests/core/geometry/test_operations.cpp
+        tests/core/renderer/test_snap.cpp
     )
 
     target_link_libraries(yjcad-tests PRIVATE

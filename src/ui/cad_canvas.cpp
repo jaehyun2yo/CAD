@@ -9,6 +9,7 @@ CadCanvas::CadCanvas(Document& doc, QWidget* parent)
     setMouseTracking(true);
     setFocusPolicy(Qt::StrongFocus);
     m_toolMgr = std::make_unique<ToolManager>(m_doc, this);
+    m_snap = std::make_unique<SnapEngine>(m_doc);
 }
 
 CadCanvas::~CadCanvas() {
@@ -56,6 +57,10 @@ void CadCanvas::mousePressEvent(QMouseEvent* event) {
         setCursor(Qt::ClosedHandCursor);
     } else if (event->button() == Qt::LeftButton) {
         Point2D worldPos = m_camera.screenToWorld(event->position());
+        // Apply snap
+        double snapTol = 10.0 / m_camera.zoom();
+        auto snapResult = m_snap->snap(worldPos, snapTol);
+        if (snapResult.valid) worldPos = snapResult.point;
 
         // If a tool is active, forward to tool first
         if (m_toolMgr->currentMode() != ToolMode::Select) {
@@ -100,14 +105,26 @@ void CadCanvas::mouseMoveEvent(QMouseEvent* event) {
 
     m_lastMousePos = pos;
 
-    // Forward to tool
+    // Forward to tool (with snap)
     Point2D world = m_camera.screenToWorld(pos);
-    if (m_toolMgr->mouseMove(world)) {
-        update(); // Repaint for rubber-band preview
+    double snapTol = 10.0 / m_camera.zoom(); // 10 screen pixels
+    auto snapResult = m_snap->snap(world, snapTol);
+    Point2D snappedWorld = snapResult.valid ? snapResult.point : world;
+
+    if (m_toolMgr->mouseMove(snappedWorld)) {
+        // Update rubber-band preview in renderer
+        auto* tool = m_toolMgr->currentTool();
+        if (tool) {
+            const Point2D* snapPt = snapResult.valid ? &snapResult.point : nullptr;
+            makeCurrent();
+            m_renderer.updatePreview(tool->previewLines(), snapPt);
+            doneCurrent();
+        }
+        update();
     }
 
     // Emit world coordinates for status bar
-    emit cursorWorldPos(world.x, world.y);
+    emit cursorWorldPos(snappedWorld.x, snappedWorld.y);
 }
 
 void CadCanvas::mouseReleaseEvent(QMouseEvent* event) {
