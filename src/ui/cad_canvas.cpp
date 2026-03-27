@@ -32,6 +32,91 @@ void CadCanvas::resizeGL(int w, int h) {
 
 void CadCanvas::paintGL() {
     m_renderer.render(m_camera);
+
+    // Text overlay: render text entities using QPainter on top of OpenGL
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
+    renderTextOverlay(painter);
+    painter.end();
+}
+
+void CadCanvas::renderTextOverlay(QPainter& painter) {
+    for (EntityId id : m_doc.entityIds()) {
+        const Entity* entity = m_doc.entity(id);
+        if (!entity || !entity->isVisible()) continue;
+        if (entity->type() != EntityType::Text) continue;
+
+        auto* text = static_cast<const TextEntity*>(entity);
+        QPointF screenPos = m_camera.worldToScreen(text->position());
+
+        // Compute font size from world height * zoom
+        double fontSize = text->height() * m_camera.zoom();
+        if (fontSize < 4.0) continue; // too small to read
+        fontSize = std::min(fontSize, 200.0); // cap max size
+
+        QFont font("Malgun Gothic", static_cast<int>(fontSize));
+        font.setStyleHint(QFont::SansSerif);
+        painter.setFont(font);
+
+        // Color based on selection/classification
+        QColor color;
+        if (entity->isSelected()) {
+            color = QColor(0, 255, 255); // cyan
+        } else if (m_darkTheme) {
+            color = QColor(200, 200, 200); // light gray on dark
+        } else {
+            color = QColor(50, 50, 50); // dark gray on light
+        }
+        painter.setPen(color);
+
+        // Apply rotation if any
+        if (std::abs(text->rotation()) > 0.01) {
+            painter.save();
+            painter.translate(screenPos);
+            painter.rotate(-text->rotation()); // screen Y is flipped
+            painter.drawText(QPointF(0, 0), QString::fromStdString(text->text()));
+            painter.restore();
+        } else {
+            painter.drawText(screenPos, QString::fromStdString(text->text()));
+        }
+    }
+}
+
+void CadCanvas::setOrthoMode(bool enabled) {
+    m_orthoMode = enabled;
+    emit orthoModeChanged(enabled);
+    update();
+}
+
+void CadCanvas::toggleOrthoMode() {
+    setOrthoMode(!m_orthoMode);
+}
+
+void CadCanvas::setSnapEnabled(bool enabled) {
+    m_snapEnabled = enabled;
+    emit snapEnabledChanged(enabled);
+}
+
+void CadCanvas::toggleSnap() {
+    setSnapEnabled(!m_snapEnabled);
+}
+
+void CadCanvas::setLastCommittedPoint(const Point2D& p) {
+    m_lastCommittedPt = p;
+    m_hasLastCommittedPt = true;
+    m_snap->setReferencePoint(p);
+}
+
+void CadCanvas::setDarkTheme(bool dark) {
+    m_darkTheme = dark;
+    makeCurrent();
+    if (dark) {
+        m_renderer.setBackgroundColor(0.0f, 0.0f, 0.0f);
+    } else {
+        m_renderer.setBackgroundColor(1.0f, 1.0f, 1.0f);
+    }
+    doneCurrent();
+    update();
 }
 
 void CadCanvas::refreshEntities() {
@@ -57,14 +142,30 @@ void CadCanvas::mousePressEvent(QMouseEvent* event) {
         setCursor(Qt::ClosedHandCursor);
     } else if (event->button() == Qt::LeftButton) {
         Point2D worldPos = m_camera.screenToWorld(event->position());
+
+        // Ortho constraint
+        if (m_orthoMode && m_hasLastCommittedPt) {
+            double dx = std::abs(worldPos.x - m_lastCommittedPt.x);
+            double dy = std::abs(worldPos.y - m_lastCommittedPt.y);
+            if (dx >= dy) {
+                worldPos.y = m_lastCommittedPt.y;
+            } else {
+                worldPos.x = m_lastCommittedPt.x;
+            }
+        }
+
         // Apply snap
-        double snapTol = 10.0 / m_camera.zoom();
-        auto snapResult = m_snap->snap(worldPos, snapTol);
-        if (snapResult.valid) worldPos = snapResult.point;
+        if (m_snapEnabled) {
+            double snapTol = 10.0 / m_camera.zoom();
+            auto snapResult = m_snap->snap(worldPos, snapTol);
+            if (snapResult.valid) worldPos = snapResult.point;
+        }
 
         // If a tool is active, forward to tool first
         if (m_toolMgr->currentMode() != ToolMode::Select) {
             if (m_toolMgr->mousePress(worldPos, Qt::LeftButton)) {
+                // Record committed point for next snap/ortho
+                setLastCommittedPoint(worldPos);
                 update();
                 return;
             }
@@ -105,10 +206,25 @@ void CadCanvas::mouseMoveEvent(QMouseEvent* event) {
 
     m_lastMousePos = pos;
 
-    // Forward to tool (with snap)
+    // Forward to tool (with snap and ortho)
     Point2D world = m_camera.screenToWorld(pos);
+
+    // Ortho constraint: align to horizontal or vertical from last committed point
+    if (m_orthoMode && m_hasLastCommittedPt) {
+        double dx = std::abs(world.x - m_lastCommittedPt.x);
+        double dy = std::abs(world.y - m_lastCommittedPt.y);
+        if (dx >= dy) {
+            world.y = m_lastCommittedPt.y; // horizontal axis
+        } else {
+            world.x = m_lastCommittedPt.x; // vertical axis
+        }
+    }
+
     double snapTol = 10.0 / m_camera.zoom(); // 10 screen pixels
-    auto snapResult = m_snap->snap(world, snapTol);
+    SnapResult snapResult;
+    if (m_snapEnabled) {
+        snapResult = m_snap->snap(world, snapTol);
+    }
     Point2D snappedWorld = snapResult.valid ? snapResult.point : world;
 
     if (m_toolMgr->mouseMove(snappedWorld)) {
@@ -141,6 +257,19 @@ void CadCanvas::wheelEvent(QWheelEvent* event) {
 }
 
 void CadCanvas::keyPressEvent(QKeyEvent* event) {
+    switch (event->key()) {
+        case Qt::Key_F3:
+            toggleSnap();
+            update();
+            return;
+        case Qt::Key_F8:
+            toggleOrthoMode();
+            update();
+            return;
+        default:
+            break;
+    }
+
     if (m_toolMgr->keyPress(event->key())) {
         emit toolChanged("선택");
         update();

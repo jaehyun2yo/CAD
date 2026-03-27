@@ -53,6 +53,11 @@ public:
     void setGridEnabled(bool enabled) { m_gridEnabled = enabled; }
     void setGridSpacing(double spacing) { m_gridSpacing = spacing; }
 
+    // ── Background ──
+    void setBackgroundColor(float r, float g, float b) {
+        m_bgR = r; m_bgG = g; m_bgB = b;
+    }
+
 private:
     void buildEntityVertices(const Document& doc);
     void buildGridVertices(const Camera& camera);
@@ -95,6 +100,9 @@ public:
 private:
     // Cached entity vertices for partial updates
     std::vector<GlVertex> m_entityVerts;
+
+    // Background color
+    float m_bgR = 0.0f, m_bgG = 0.0f, m_bgB = 0.0f;
 };
 
 } // namespace yjcad

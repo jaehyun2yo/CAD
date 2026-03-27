@@ -164,4 +164,92 @@ double GeometryOps::pointToSegmentDistance(const Point2D& p,
     return p.distanceTo(proj);
 }
 
+bool GeometryOps::lineLineIntersection(const Point2D& a1, const Point2D& a2,
+                                       const Point2D& b1, const Point2D& b2,
+                                       Point2D& intersection) {
+    double d1x = a2.x - a1.x, d1y = a2.y - a1.y;
+    double d2x = b2.x - b1.x, d2y = b2.y - b1.y;
+    double denom = d1x * d2y - d1y * d2x;
+    if (std::abs(denom) < 1e-12) return false; // parallel
+
+    double t = ((b1.x - a1.x) * d2y - (b1.y - a1.y) * d2x) / denom;
+    double u = ((b1.x - a1.x) * d1y - (b1.y - a1.y) * d1x) / denom;
+
+    if (t < -1e-9 || t > 1.0 + 1e-9 || u < -1e-9 || u > 1.0 + 1e-9)
+        return false; // outside segments
+
+    intersection = {a1.x + t * d1x, a1.y + t * d1y};
+    return true;
+}
+
+int GeometryOps::lineCircleIntersection(const Point2D& lineStart, const Point2D& lineEnd,
+                                        const Point2D& center, double radius,
+                                        Point2D& hit1, Point2D& hit2) {
+    double dx = lineEnd.x - lineStart.x;
+    double dy = lineEnd.y - lineStart.y;
+    double fx = lineStart.x - center.x;
+    double fy = lineStart.y - center.y;
+
+    double a = dx * dx + dy * dy;
+    if (a < 1e-18) return 0;
+    double b = 2.0 * (fx * dx + fy * dy);
+    double c = fx * fx + fy * fy - radius * radius;
+    double disc = b * b - 4.0 * a * c;
+
+    if (disc < -1e-9) return 0;
+    if (disc < 0) disc = 0;
+
+    double sqrtDisc = std::sqrt(disc);
+    int count = 0;
+
+    double t1 = (-b - sqrtDisc) / (2.0 * a);
+    if (t1 >= -1e-9 && t1 <= 1.0 + 1e-9) {
+        hit1 = {lineStart.x + t1 * dx, lineStart.y + t1 * dy};
+        count++;
+    }
+
+    double t2 = (-b + sqrtDisc) / (2.0 * a);
+    if (t2 >= -1e-9 && t2 <= 1.0 + 1e-9 && std::abs(t2 - t1) > 1e-9) {
+        if (count == 0)
+            hit1 = {lineStart.x + t2 * dx, lineStart.y + t2 * dy};
+        else
+            hit2 = {lineStart.x + t2 * dx, lineStart.y + t2 * dy};
+        count++;
+    }
+
+    return count;
+}
+
+std::vector<std::unique_ptr<LineEntity>> GeometryOps::splitLineAt(
+    const LineEntity& line, const Point2D& splitPoint, EntityId startId) {
+
+    std::vector<std::unique_ptr<LineEntity>> result;
+    constexpr double eps = 1e-6;
+
+    if (splitPoint.distanceTo(line.start()) < eps ||
+        splitPoint.distanceTo(line.end()) < eps) {
+        // Split point is at endpoint — return the line as-is
+        auto seg = std::make_unique<LineEntity>(startId, line.start(), line.end());
+        seg->setLayerName(line.layerName());
+        seg->setColor(line.color());
+        seg->setClassification(line.classification());
+        result.push_back(std::move(seg));
+        return result;
+    }
+
+    auto seg1 = std::make_unique<LineEntity>(startId, line.start(), splitPoint);
+    seg1->setLayerName(line.layerName());
+    seg1->setColor(line.color());
+    seg1->setClassification(line.classification());
+
+    auto seg2 = std::make_unique<LineEntity>(startId + 1, splitPoint, line.end());
+    seg2->setLayerName(line.layerName());
+    seg2->setColor(line.color());
+    seg2->setClassification(line.classification());
+
+    result.push_back(std::move(seg1));
+    result.push_back(std::move(seg2));
+    return result;
+}
+
 } // namespace yjcad

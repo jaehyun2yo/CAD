@@ -74,17 +74,17 @@ bool RotateTool::mousePress(const Point2D& worldPos, Qt::MouseButton button) {
         return true;
     }
 
-    // Third click: target angle → rotate
+    // Third click: target angle → rotate via command (undoable)
     double refAngle = std::atan2(m_refPoint.y - m_center.y, m_refPoint.x - m_center.x);
     double targetAngle = std::atan2(worldPos.y - m_center.y, worldPos.x - m_center.x);
     double angleDeg = (targetAngle - refAngle) * 180.0 / 3.14159265358979323846;
 
-    for (EntityId id : m_doc->selection().selectedIds()) {
-        if (auto* e = m_doc->entity(id)) {
-            e->rotate(m_center, angleDeg);
-        }
-    }
-    m_doc->setModified(true);
+    auto ids = std::vector<EntityId>(
+        m_doc->selection().selectedIds().begin(),
+        m_doc->selection().selectedIds().end());
+
+    auto cmd = std::make_unique<RotateCommand>(*m_doc, ids, m_center, angleDeg);
+    m_doc->history().execute(std::move(cmd));
 
     m_clickCount = 0;
     m_preview.clear();

@@ -124,4 +124,51 @@ private:
     Point2D m_delta;
 };
 
+/// Command: Mirror entities across an axis
+class MirrorCommand : public Command {
+public:
+    MirrorCommand(Document& doc, const std::vector<EntityId>& ids,
+                  const Point2D& p1, const Point2D& p2);
+    void execute() override;
+    void undo() override;
+    std::string description() const override { return "Mirror"; }
+
+private:
+    Document& m_doc;
+    std::vector<EntityId> m_ids;
+    Point2D m_p1, m_p2;
+};
+
+/// Command: Scale entities from a center point
+class ScaleCommand : public Command {
+public:
+    ScaleCommand(Document& doc, const std::vector<EntityId>& ids,
+                 const Point2D& center, double factor);
+    void execute() override;
+    void undo() override;
+    std::string description() const override { return "Scale"; }
+
+private:
+    Document& m_doc;
+    std::vector<EntityId> m_ids;
+    Point2D m_center;
+    double m_factor;
+};
+
+/// Command: Rotate entities around a center
+class RotateCommand : public Command {
+public:
+    RotateCommand(Document& doc, const std::vector<EntityId>& ids,
+                  const Point2D& center, double angleDeg);
+    void execute() override;
+    void undo() override;
+    std::string description() const override { return "Rotate"; }
+
+private:
+    Document& m_doc;
+    std::vector<EntityId> m_ids;
+    Point2D m_center;
+    double m_angleDeg;
+};
+
 } // namespace yjcad

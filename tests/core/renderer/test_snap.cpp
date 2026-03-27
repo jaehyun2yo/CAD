@@ -26,6 +26,11 @@ TEST_F(SnapTest, GridSnap) {
     snap.setEndpointSnap(false);
     snap.setMidpointSnap(false);
     snap.setCenterSnap(false);
+    snap.setNearestSnap(false);
+    snap.setIntersectionSnap(false);
+    snap.setPerpendicularSnap(false);
+    snap.setTangentSnap(false);
+    snap.setQuadrantSnap(false);
 
     auto result = snap.snap({12.3, 7.8}, 15.0);
     EXPECT_TRUE(result.valid);
@@ -36,6 +41,11 @@ TEST_F(SnapTest, GridSnap) {
 
 TEST_F(SnapTest, EndpointSnap) {
     SnapEngine snap(doc);
+    snap.setNearestSnap(false);
+    snap.setIntersectionSnap(false);
+    snap.setPerpendicularSnap(false);
+    snap.setTangentSnap(false);
+    snap.setQuadrantSnap(false);
     auto result = snap.snap({1.5, 0.5}, 5.0);
     EXPECT_TRUE(result.valid);
     EXPECT_EQ(result.type, SnapType::Endpoint);
@@ -45,6 +55,11 @@ TEST_F(SnapTest, EndpointSnap) {
 
 TEST_F(SnapTest, MidpointSnap) {
     SnapEngine snap(doc);
+    snap.setNearestSnap(false);
+    snap.setIntersectionSnap(false);
+    snap.setPerpendicularSnap(false);
+    snap.setTangentSnap(false);
+    snap.setQuadrantSnap(false);
     auto result = snap.snap({49.5, 0.5}, 5.0);
     EXPECT_TRUE(result.valid);
     EXPECT_EQ(result.type, SnapType::Midpoint);
@@ -71,6 +86,11 @@ TEST_F(SnapTest, NoSnapOutOfRange) {
 TEST_F(SnapTest, EndpointPriorityOverGrid) {
     SnapEngine snap(doc);
     snap.setGridSnap(true, 10.0);
+    snap.setNearestSnap(false);
+    snap.setIntersectionSnap(false);
+    snap.setPerpendicularSnap(false);
+    snap.setTangentSnap(false);
+    snap.setQuadrantSnap(false);
     // Point near origin (0,0) which is an endpoint — should snap to endpoint, not grid
     auto result = snap.snap({0.5, 0.5}, 5.0);
     EXPECT_TRUE(result.valid);

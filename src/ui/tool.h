@@ -13,15 +13,21 @@ class CadCanvas;
 /// Tool mode for status bar display
 enum class ToolMode {
     Select,     // Default: select/move entities
-    DrawLine,
-    DrawCircle,
-    DrawPolyline,
-    Move,
-    Copy,
-    Rotate,
-    Mirror,
-    Offset,
-    Delete
+    // Draw
+    DrawLine, DrawCircle, DrawArc, DrawPolyline,
+    DrawRect, DrawEllipse, DrawPolygon, DrawPoint, DrawText, DrawXLine,
+    // Edit
+    Move, Copy, Rotate, Mirror, Scale, Offset, Trim, Delete,
+    Array, PolarArray, Stretch, Extend, Break, Divide,
+    Chamfer, Fillet,
+    // Group
+    Join, Explode,
+    // Inquiry
+    Distance, AreaCalc,
+    // Dimension
+    Dim,
+    // Zoom
+    ZoomWindow
 };
 
 /// Base class for interactive CAD tools

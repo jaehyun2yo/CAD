@@ -135,4 +135,69 @@ void MoveCommand::undo() {
     }
 }
 
+// ── MirrorCommand ──
+
+MirrorCommand::MirrorCommand(Document& doc, const std::vector<EntityId>& ids,
+                             const Point2D& p1, const Point2D& p2)
+    : m_doc(doc), m_ids(ids), m_p1(p1), m_p2(p2) {}
+
+void MirrorCommand::execute() {
+    for (EntityId id : m_ids) {
+        if (auto* e = m_doc.entity(id))
+            e->mirror(m_p1, m_p2);
+    }
+    m_doc.setModified(true);
+}
+
+void MirrorCommand::undo() {
+    // Mirror is its own inverse
+    for (EntityId id : m_ids) {
+        if (auto* e = m_doc.entity(id))
+            e->mirror(m_p1, m_p2);
+    }
+}
+
+// ── ScaleCommand ──
+
+ScaleCommand::ScaleCommand(Document& doc, const std::vector<EntityId>& ids,
+                           const Point2D& center, double factor)
+    : m_doc(doc), m_ids(ids), m_center(center), m_factor(factor) {}
+
+void ScaleCommand::execute() {
+    for (EntityId id : m_ids) {
+        if (auto* e = m_doc.entity(id))
+            e->scale(m_center, m_factor);
+    }
+    m_doc.setModified(true);
+}
+
+void ScaleCommand::undo() {
+    double inverse = (m_factor != 0.0) ? 1.0 / m_factor : 1.0;
+    for (EntityId id : m_ids) {
+        if (auto* e = m_doc.entity(id))
+            e->scale(m_center, inverse);
+    }
+}
+
+// ── RotateCommand ──
+
+RotateCommand::RotateCommand(Document& doc, const std::vector<EntityId>& ids,
+                             const Point2D& center, double angleDeg)
+    : m_doc(doc), m_ids(ids), m_center(center), m_angleDeg(angleDeg) {}
+
+void RotateCommand::execute() {
+    for (EntityId id : m_ids) {
+        if (auto* e = m_doc.entity(id))
+            e->rotate(m_center, m_angleDeg);
+    }
+    m_doc.setModified(true);
+}
+
+void RotateCommand::undo() {
+    for (EntityId id : m_ids) {
+        if (auto* e = m_doc.entity(id))
+            e->rotate(m_center, -m_angleDeg);
+    }
+}
+
 } // namespace yjcad

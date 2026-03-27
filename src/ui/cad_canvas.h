@@ -9,6 +9,7 @@
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QKeyEvent>
+#include <QPainter>
 #include <memory>
 
 namespace yjcad {
@@ -26,10 +27,29 @@ public:
     void zoomToFit();
     void refreshEntities();
 
+    /// Theme control
+    void setDarkTheme(bool dark);
+    bool isDarkTheme() const { return m_darkTheme; }
+
+    /// Ortho mode — constrain cursor to X/Y axis relative to last committed point
+    void setOrthoMode(bool enabled);
+    bool isOrthoMode() const { return m_orthoMode; }
+    void toggleOrthoMode();
+
+    /// Snap enabled/disabled toggle (all snap types at once)
+    void setSnapEnabled(bool enabled);
+    bool isSnapEnabled() const { return m_snapEnabled; }
+    void toggleSnap();
+
+    /// Notify canvas of the last committed drawing point (for Ortho & Perp/Tan snaps)
+    void setLastCommittedPoint(const Point2D& p);
+
 signals:
     void cursorWorldPos(double x, double y);
     void entityClicked(EntityId id);
     void toolChanged(const QString& toolName);
+    void orthoModeChanged(bool enabled);
+    void snapEnabledChanged(bool enabled);
 
 protected:
     void initializeGL() override;
@@ -44,6 +64,7 @@ protected:
 
 private:
     EntityId hitTest(const QPointF& screenPos, double tolerance = 5.0);
+    void renderTextOverlay(QPainter& painter);
 
     Document& m_doc;
     Camera m_camera;
@@ -54,6 +75,19 @@ private:
     // Mouse state
     bool m_panning = false;
     QPointF m_lastMousePos;
+
+    // Theme
+    bool m_darkTheme = true;
+
+    // Ortho mode
+    bool m_orthoMode = false;
+
+    // Snap master switch
+    bool m_snapEnabled = true;
+
+    // Last committed point used for Ortho constraint and Perp/Tan snaps
+    Point2D m_lastCommittedPt;
+    bool    m_hasLastCommittedPt = false;
 };
 
 } // namespace yjcad

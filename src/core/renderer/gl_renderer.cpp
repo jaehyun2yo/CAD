@@ -278,7 +278,7 @@ void GlRenderer::buildGridVertices(const Camera& camera) {
 void GlRenderer::render(const Camera& camera) {
     if (!m_initialized) return;
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Black background (Dark mode)
+    glClearColor(m_bgR, m_bgG, m_bgB, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     m_shader->bind();

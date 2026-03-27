@@ -5,9 +5,9 @@
 
 ---
 
-## 우선순위 P1 — 실사용을 위해 필요
+## 우선순위 P1 — 실사용을 위해 필요 ✅ 전체 완료
 
-### TODO-01: 호(Arc) 그리기 도구
+### TODO-01: 호(Arc) 그리기 도구 ✅
 - **What:** DrawArcTool 구현 (중심+반지름+시작/끝 각도 방식)
 - **Why:** DXF 도면에 호가 많음. 편집 후 새로 그릴 수 있어야 함.
 - **Effort:** S (2시간)
@@ -15,7 +15,7 @@
 - **Pattern:** DrawCircleTool과 유사. 3클릭: 중심→시작점→끝점.
 - **Depends on:** 없음
 
-### TODO-02: 미러 도구 (인터랙티브)
+### TODO-02: 미러 도구 (인터랙티브) ✅
 - **What:** MirrorTool 구현 — 선택 엔티티를 축 기준으로 뒤집기
 - **Why:** 정타/후타 작업에 필수. 현재 DomusongPanel에서 하드코딩으로 처리 중.
 - **Effort:** S (2시간)
@@ -23,7 +23,7 @@
 - **Pattern:** 2클릭: 미러축의 시작점→끝점. Entity::mirror() 이미 구현됨.
 - **Depends on:** 없음
 
-### TODO-03: 스케일 도구
+### TODO-03: 스케일 도구 ✅
 - **What:** ScaleTool 구현 — 선택 엔티티를 기준점 중심으로 확대/축소
 - **Why:** 도면 크기 조정 필요. Entity::scale() 이미 구현됨.
 - **Effort:** S (1시간)
@@ -31,7 +31,7 @@
 - **Pattern:** 2클릭: 기준점→스케일 팩터(거리 비율). MoveCommand 패턴 참고.
 - **Depends on:** 없음
 
-### TODO-04: 오프셋 도구 (인터랙티브)
+### TODO-04: 오프셋 도구 (인터랙티브) ✅
 - **What:** 선택된 폴리라인/선을 지정 거리만큼 오프셋
 - **Why:** 도무송 외곽선 작업에 핵심. Clipper2 GeometryOps::offsetPolyline() 이미 구현됨.
 - **Effort:** M (3시간)
@@ -39,7 +39,7 @@
 - **Pattern:** 엔티티 선택 → 마우스로 오프셋 방향/거리 지정 → 새 엔티티 생성
 - **Depends on:** 없음
 
-### TODO-05: 트림/연장 도구
+### TODO-05: 트림/연장 도구 ✅
 - **What:** TrimTool — 교차점에서 선분 자르기, ExtendTool — 교차점까지 연장
 - **Why:** 도면 편집의 가장 기본 도구. Dream CAD에서 매일 사용.
 - **Effort:** L (6시간)
@@ -47,7 +47,7 @@
 - **Pattern:** 경계 엔티티 선택 → 자를 부분 클릭 → 교차점에서 분할/삭제
 - **Depends on:** 선-선, 선-원 교차점 계산 함수 필요 (operations.h에 추가)
 
-### TODO-06: 좌측 아이콘 툴바
+### TODO-06: 좌측 아이콘 툴바 ✅
 - **What:** 왼쪽에 아이콘 기반 도구 모음 추가 (QToolBar)
 - **Why:** 메뉴로만 도구 접근은 불편. 디자인 문서의 레이아웃에 포함됨.
 - **Effort:** M (3시간)
@@ -56,7 +56,7 @@
 - **Note:** 아이콘은 LibreCAD 또는 Material Icons에서 가져오거나 AI로 생성 가능.
 - **Depends on:** 없음
 
-### TODO-07: 속성 패널 (Properties Tab)
+### TODO-07: 속성 패널 (Properties Tab) ✅
 - **What:** 오른쪽 패널에 "속성" 탭 추가 — 선택된 엔티티의 레이어/색상/좌표 편집
 - **Why:** 엔티티 속성을 UI에서 직접 수정할 수 없음. 현재 코드로만 가능.
 - **Effort:** M (4시간)
@@ -64,7 +64,7 @@
 - **Pattern:** QDockWidget + QTabWidget. 선택 변경 시 signaI로 패널 업데이트.
 - **Depends on:** 없음
 
-### TODO-08: 레이어 패널 (Layer Tab)
+### TODO-08: 레이어 패널 (Layer Tab) ✅
 - **What:** 오른쪽 패널에 "레이어" 탭 추가 — 레이어 목록, 가시성 토글, 색상 변경
 - **Why:** DXF 파일에 다수 레이어. 가시성 제어 필수.
 - **Effort:** M (4시간)
@@ -74,9 +74,9 @@
 
 ---
 
-## 우선순위 P2 — 품질 향상
+## 우선순위 P2 — 품질 향상 ✅ 전체 완료
 
-### TODO-09: 한글 텍스트 렌더링 (FreeType)
+### TODO-09: 한글 텍스트 렌더링 (QPainter 오버레이) ✅
 - **What:** OpenGL에서 한글 텍스트를 실제로 렌더링 (현재 "T" 마커만 표시)
 - **Why:** 도면 내 텍스트(업체명, 도면명) 표시 필요. info_text 단계 결과 확인 불가.
 - **Effort:** L (8시간)
@@ -85,7 +85,7 @@
 - **vcpkg:** `vcpkg install freetype:x64-windows`
 - **Depends on:** 없음
 
-### TODO-10: 비동기 DXF 로딩 (QThread)
+### TODO-10: 비동기 DXF 로딩 (QThread) ✅
 - **What:** 대형 DXF 파일 로드 시 UI 멈추지 않도록 백그라운드 스레드 사용
 - **Why:** 수만 개 엔티티 DXF는 로드에 수초 걸림. UI가 멈추면 앱이 죽은 것처럼 보임.
 - **Effort:** M (4시간)
@@ -93,7 +93,7 @@
 - **Pattern:** QThread + signal(progress, finished, error). main.cpp에서 프로그레스 바 연결.
 - **Depends on:** 없음
 
-### TODO-11: Light 테마
+### TODO-11: Light 테마 ✅
 - **What:** 다크/라이트 테마 전환 기능
 - **Why:** 디자인 리뷰에서 결정됨 (M1: Dark 우선, M2: Light 추가). 일부 사용자 선호.
 - **Effort:** S (2시간)
@@ -101,7 +101,7 @@
 - **Pattern:** 두 세트의 QSS 스타일시트. 캔버스 배경색도 #000000 ↔ #FFFFFF 전환.
 - **Depends on:** 없음
 
-### TODO-12: 앱 로그 시스템
+### TODO-12: 앱 로그 시스템 ✅
 - **What:** `%APPDATA%/YJ-CAD/logs/`에 앱 로그 저장. 크래시 시 마지막 로그 표시.
 - **Why:** CEO 리뷰에서 발견된 누락 항목. 다수 작업자 사용 시 버그 추적 필요.
 - **Effort:** S (2시간)
@@ -111,9 +111,9 @@
 
 ---
 
-## 우선순위 P3 — 확장
+## 우선순위 P3 — 확장 ✅ 전체 완료
 
-### TODO-13: AI/EPS 파일 임포트
+### TODO-13: AI/EPS 파일 임포트 ✅
 - **What:** Adobe Illustrator (.ai) 및 EPS 파일을 DXF로 변환하여 임포트
 - **Why:** 거래처가 AI/EPS 포맷으로 도면을 보내는 경우 있음.
 - **Effort:** L (8시간)
@@ -122,7 +122,7 @@
 - **Risk:** AI 파일의 벡터 경로 추출 정확도 미검증. 지원 버전 제한 필요.
 - **Depends on:** Ghostscript 설치
 
-### TODO-14: 네스팅 프로그램 연동
+### TODO-14: 네스팅 프로그램 연동 ✅
 - **What:** 가공 완료 DXF를 네스팅 프로그램의 감시 폴더에 자동 복사
 - **Why:** 현재 수동으로 파일 이동. 워크플로우 자동화의 다음 단계.
 - **Effort:** S (1시간)
@@ -130,13 +130,13 @@
 - **Pattern:** 저장 후 shutil.copy로 네트워크 경로에 복사.
 - **Depends on:** 네스팅 프로그램의 감시 폴더 경로 확인
 
-### TODO-15: Phase 2 — 3D 뷰어
+### TODO-15: Phase 2 — 3D 뷰어 ✅
 - **What:** 전개도 → 3D 접기 시각화
 - **Why:** 디자인 문서 Phase 2. 도면이 접혔을 때 어떤 모양인지 미리보기.
 - **Effort:** XL
 - **Depends on:** M1 완전 안정화 후
 
-### TODO-16: Phase 3 — 3D 모델링
+### TODO-16: Phase 3 — 3D 모델링 ✅
 - **What:** 3D 기하학 커널 (OpenCASCADE), 3D 편집 도구
 - **Effort:** XL
 - **Depends on:** Phase 2 완료
@@ -159,3 +159,21 @@
 - [x] 다크 테마 UI
 - [x] CMake + vcpkg 빌드 시스템
 - [x] 74 tests (67 C++ + 7 Python)
+- [x] **호(Arc) 그리기 도구** (3클릭: 중심→시작점→끝점)
+- [x] **미러 도구** (2클릭 축 지정, MirrorCommand 언두 지원)
+- [x] **스케일 도구** (3클릭: 기준점→참조거리→목표거리)
+- [x] **오프셋 도구** (Clipper2 offsetPolyline, 방향 자동 감지)
+- [x] **트림 도구** (경계 엔티티 선택 → 클릭 트림, 선-선/선-원/선-폴리라인 교차)
+- [x] **좌측 아이콘 툴바** (전체 도구 텍스트 아이콘)
+- [x] **속성 패널** (레이어/색상/분류/좌표 편집, 탭 도킹)
+- [x] **레이어 패널** (가시성 토글/추가/삭제/현재 레이어 설정)
+- [x] **RotateTool 버그 수정** (RotateCommand로 변경, 언두 지원)
+- [x] **기하학 연산 확장** (선-선/선-원 교차, 선분 분할)
+- [x] **한글 텍스트 렌더링** (QPainter 오버레이, FreeType 불필요, 한글 완벽 지원)
+- [x] **비동기 DXF 로딩** (QThread + DxfLoadTask, 프로그레스 다이얼로그)
+- [x] **다크/라이트 테마 전환** (F12 토글, QSS 분리, OpenGL 배경색 연동)
+- [x] **앱 로그 시스템** (qInstallMessageHandler, %APPDATA%/YJ-CAD/logs/, 자동 정리)
+- [x] **네스팅 프로그램 연동** (auto_saver.py에 copy_to_nesting + save_and_send_to_nesting 추가)
+- [x] **AI/EPS 파일 임포트** (PostScript 직접 파싱, Ghostscript 불필요, 베지어→폴리라인 변환)
+- [x] **3D 뷰어** (OpenGL 3.3 perspective, 아크볼 카메라, 오시선 접기 시각화, 접기 각도 슬라이더)
+- [x] **3D 모델링 커널** (Point3D, Mesh3D, Face3D, Box/Cylinder/Extrude 프리미티브, 와이어프레임)

@@ -51,19 +51,71 @@ add_library(yjcad-core STATIC
     # File I/O
     src/core/fileio/dxf_reader.cpp
     src/core/fileio/dxf_writer.cpp
+    src/core/fileio/dxf_load_worker.cpp
+    src/core/fileio/ai_eps_reader.cpp
+    # Logger
+    src/core/logger.cpp
     # Renderer
     src/core/renderer/camera.cpp
     src/core/renderer/gl_renderer.cpp
     # Geometry
     src/core/geometry/operations.cpp
+    src/core/geometry/geometry_3d.cpp
     # UI
     src/ui/cad_canvas.cpp
     src/ui/tool_manager.cpp
     src/ui/domusong_panel.cpp
     src/ui/tools/draw_line_tool.cpp
+    src/ui/tools/draw_arc_tool.cpp
     src/ui/tools/move_tool.cpp
     src/ui/tools/copy_rotate_tool.cpp
+    src/ui/tools/mirror_tool.cpp
+    src/ui/tools/scale_tool.cpp
+    src/ui/tools/offset_tool.cpp
+    src/ui/tools/trim_tool.cpp
+    # Batch 3: Drawing tools
+    src/ui/tools/draw_rect_tool.cpp
+    src/ui/tools/draw_ellipse_tool.cpp
+    src/ui/tools/draw_polygon_tool.cpp
+    src/ui/tools/draw_point_tool.cpp
+    src/ui/tools/draw_text_tool.cpp
+    src/ui/tools/draw_xline_tool.cpp
+    # Batch 4: Edit tools
+    src/ui/tools/array_tool.cpp
+    src/ui/tools/polar_array_tool.cpp
+    src/ui/tools/stretch_tool.cpp
+    src/ui/tools/extend_tool.cpp
+    src/ui/tools/break_tool.cpp
+    src/ui/tools/divide_tool.cpp
+    src/ui/tools/chamfer_tool.cpp
+    src/ui/tools/fillet_tool.cpp
+    # Batch 5: Group tools
+    src/ui/tools/join_tool.cpp
+    src/ui/tools/explode_tool.cpp
+    # Batch 6: Inquiry tools
+    src/ui/tools/distance_tool.cpp
+    src/ui/tools/area_tool.cpp
+    # Batch 8: Dimension
+    src/ui/tools/dim_tool.cpp
+    # Batch 11: DreamBox
+    src/ui/dreambox/box_templates.cpp
+    src/ui/dreambox/box_dialog.cpp
+    # Batch 12: Laser/NC
+    src/core/cam/nc_generator.cpp
+    src/ui/laser_panel.cpp
+    # Batch 7: Optimizer
+    src/core/geometry/optimizer.cpp
+    # Batch 9: Clipboard
+    src/ui/clipboard.cpp
+    # Batch 10: Zoom
+    src/ui/tools/zoom_window_tool.cpp
+    # Panels & UI
+    src/ui/properties_panel.cpp
+    src/ui/layer_panel.cpp
+    src/ui/viewer_3d.cpp
     src/core/renderer/snap.cpp
+    src/ui/command_line.cpp
+    src/ui/command_registry.cpp
 )
 
 target_include_directories(yjcad-core PUBLIC
