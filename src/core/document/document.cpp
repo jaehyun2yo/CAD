@@ -9,6 +9,7 @@ EntityId Document::addEntity(std::unique_ptr<Entity> entity) {
     EntityId id = entity->id();
     m_entities[id] = std::move(entity);
     m_modified = true;
+    invalidateIdCache();
     return id;
 }
 
@@ -19,6 +20,7 @@ std::unique_ptr<Entity> Document::removeEntity(EntityId id) {
     m_entities.erase(it);
     m_selection.deselect(id);
     m_modified = true;
+    invalidateIdCache();
     return entity;
 }
 
@@ -32,13 +34,16 @@ const Entity* Document::entity(EntityId id) const {
     return it != m_entities.end() ? it->second.get() : nullptr;
 }
 
-std::vector<EntityId> Document::entityIds() const {
-    std::vector<EntityId> ids;
-    ids.reserve(m_entities.size());
-    for (const auto& [id, _] : m_entities) {
-        ids.push_back(id);
+const std::vector<EntityId>& Document::entityIds() const {
+    if (m_idsCacheDirty) {
+        m_cachedIds.clear();
+        m_cachedIds.reserve(m_entities.size());
+        for (const auto& [id, _] : m_entities) {
+            m_cachedIds.push_back(id);
+        }
+        m_idsCacheDirty = false;
     }
-    return ids;
+    return m_cachedIds;
 }
 
 std::vector<EntityId> Document::entitiesInBox(const BoundingBox& box) const {
@@ -76,6 +81,7 @@ void Document::clear() {
     m_nextId = 1;
     m_modified = false;
     m_filePath.clear();
+    invalidateIdCache();
 }
 
 void Document::takeFrom(Document& other) {
@@ -85,6 +91,7 @@ void Document::takeFrom(Document& other) {
     m_nextId = other.m_nextId;
     m_filePath = std::move(other.m_filePath);
     m_modified = other.m_modified;
+    invalidateIdCache();
     other.clear();
 }
 

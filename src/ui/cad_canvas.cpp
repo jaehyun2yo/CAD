@@ -33,11 +33,14 @@ void CadCanvas::resizeGL(int w, int h) {
 void CadCanvas::paintGL() {
     m_renderer.render(m_camera);
 
-    // Text overlay: render text entities using QPainter on top of OpenGL
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
-    renderTextOverlay(painter);
-    painter.end();
+    // Skip QPainter entirely when no text or actively zooming (avoids GL flush)
+    if (m_textIdsDirty) rebuildTextEntityCache();
+    if (!m_textEntityIds.empty() && !isActivelyZooming()) {
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing);
+        renderTextOverlay(painter);
+        painter.end();
+    }
 }
 
 void CadCanvas::renderTextOverlay(QPainter& painter) {
@@ -152,6 +155,13 @@ void CadCanvas::refreshEntities() {
     update();
 }
 
+void CadCanvas::refreshSelectionColors() {
+    makeCurrent();
+    m_renderer.refreshColors(m_doc);
+    doneCurrent();
+    update();
+}
+
 void CadCanvas::rebuildTextEntityCache() {
     m_textEntityIds.clear();
     for (EntityId id : m_doc.entityIds()) {
@@ -208,7 +218,7 @@ void CadCanvas::mousePressEvent(QMouseEvent* event) {
             }
         }
 
-        // Default: Selection
+        // Default: Selection — use fast color-only refresh
         EntityId id = hitTest(event->position());
         if (id > 0) {
             if (event->modifiers() & Qt::ShiftModifier) {
@@ -217,12 +227,12 @@ void CadCanvas::mousePressEvent(QMouseEvent* event) {
                 m_doc.selection().clear();
                 m_doc.selection().select(id);
             }
-            refreshEntities();
+            refreshSelectionColors();
             emit entityClicked(id);
         } else {
             if (!(event->modifiers() & Qt::ShiftModifier)) {
                 m_doc.selection().clear();
-                refreshEntities();
+                refreshSelectionColors();
             }
         }
     } else if (event->button() == Qt::RightButton) {
@@ -259,8 +269,11 @@ void CadCanvas::mouseMoveEvent(QMouseEvent* event) {
 
     double snapTol = 10.0 / m_camera.zoom(); // 10 screen pixels
     SnapResult snapResult;
-    if (m_snapEnabled) {
+    if (m_snapEnabled && !isActivelyZooming()) {
         snapResult = m_snap->snap(world, snapTol);
+    }
+    if (m_isZooming && !isActivelyZooming()) {
+        m_isZooming = false; // zoom debounce expired
     }
     Point2D snappedWorld = snapResult.valid ? snapResult.point : world;
 
@@ -290,7 +303,14 @@ void CadCanvas::mouseReleaseEvent(QMouseEvent* event) {
 void CadCanvas::wheelEvent(QWheelEvent* event) {
     double factor = event->angleDelta().y() > 0 ? 1.15 : 1.0 / 1.15;
     m_camera.zoomAt(factor, event->position());
+    m_isZooming = true;
+    m_zoomTimer.start();
     update();
+}
+
+bool CadCanvas::isActivelyZooming() const {
+    return m_isZooming && m_zoomTimer.isValid() &&
+           m_zoomTimer.elapsed() < ZOOM_DEBOUNCE_MS;
 }
 
 void CadCanvas::keyPressEvent(QKeyEvent* event) {

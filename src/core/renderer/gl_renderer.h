@@ -44,6 +44,9 @@ public:
     /// Rebuild VBOs from document entities (call when entities change)
     void rebuildFromDocument(const Document& doc);
 
+    /// Lightweight refresh: only update colors (for selection changes)
+    void refreshColors(const Document& doc);
+
     /// Render all entities + grid
     void render(const Camera& camera);
 
@@ -112,6 +115,8 @@ private:
     double m_lastGridZoom = -1.0;
     int m_lastGridVpW = 0, m_lastGridVpH = 0;
     bool m_gridDirty = true;
+    bool m_gridVboInitialized = false;
+    static constexpr int GRID_MAX_VERTICES = 1024;
 
     bool isGridCacheDirty(const Camera& camera) const;
     void updateGridCache(const Camera& camera);

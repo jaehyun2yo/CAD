@@ -534,6 +534,62 @@ void GlRenderer::rebuildFromDocument(const Document& doc) {
     m_entityVao.release();
 }
 
+void GlRenderer::refreshColors(const Document& doc) {
+    if (!m_initialized || m_entityVerts.empty()) return;
+
+    const LayerManager* layers = &doc.layers();
+    size_t vi = 0;
+
+    for (EntityId id : doc.entityIds()) {
+        const Entity* entity = doc.entity(id);
+        if (!entity || !entity->isVisible()) continue;
+
+        float r, g, b;
+        getEntityColor(entity, r, g, b, layers);
+
+        // Count how many vertices this entity uses
+        size_t vertCount = 0;
+        switch (entity->type()) {
+            case EntityType::Line: vertCount = 2; break;
+            case EntityType::Circle: vertCount = ARC_SEGMENTS * 2; break;
+            case EntityType::Arc: {
+                auto* arc = static_cast<const ArcEntity*>(entity);
+                double startRad = arc->startAngle() * PI / 180.0;
+                double endRad = arc->endAngle() * PI / 180.0;
+                if (endRad <= startRad) endRad += 2.0 * PI;
+                double span = endRad - startRad;
+                vertCount = std::max(4, static_cast<int>(ARC_SEGMENTS * span / (2.0 * PI))) * 2;
+                break;
+            }
+            case EntityType::Polyline: {
+                auto* poly = static_cast<const PolylineEntity*>(entity);
+                size_t segs = poly->vertices().size() > 1 ? poly->vertices().size() - 1 : 0;
+                if (poly->isClosed() && poly->vertices().size() > 1) segs++;
+                vertCount = segs * 2;
+                break;
+            }
+            case EntityType::Text: vertCount = 4; break;
+            default: break;
+        }
+
+        // Patch colors in-place
+        for (size_t j = 0; j < vertCount && vi + j < m_entityVerts.size(); ++j) {
+            m_entityVerts[vi + j].r = r;
+            m_entityVerts[vi + j].g = g;
+            m_entityVerts[vi + j].b = b;
+        }
+        vi += vertCount;
+    }
+
+    // Upload patched data
+    m_entityVao.bind();
+    m_entityVbo.bind();
+    m_entityVbo.write(0, m_entityVerts.data(),
+                      static_cast<int>(m_entityVerts.size() * sizeof(GlVertex)));
+    m_entityVbo.release();
+    m_entityVao.release();
+}
+
 void GlRenderer::buildGridVertices(const Camera& camera) {
     std::vector<GlVertex> gridVerts;
     auto bounds = camera.visibleBounds();
@@ -569,18 +625,30 @@ void GlRenderer::buildGridVertices(const Camera& camera) {
     gridVerts.push_back({0.0f, static_cast<float>(bounds.min.y), 0.0f, ox, 0.0f});
     gridVerts.push_back({0.0f, static_cast<float>(bounds.max.y), 0.0f, ox, 0.0f});
 
+    // Clamp to pre-allocated max
+    if (gridVerts.size() > static_cast<size_t>(GRID_MAX_VERTICES))
+        gridVerts.resize(GRID_MAX_VERTICES);
     m_gridVertexCount = static_cast<int>(gridVerts.size());
 
     m_gridVao.bind();
     m_gridVbo.bind();
-    m_gridVbo.allocate(gridVerts.data(),
-                       static_cast<int>(gridVerts.size() * sizeof(GlVertex)));
 
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(GlVertex), nullptr);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GlVertex),
-                          reinterpret_cast<void*>(2 * sizeof(float)));
+    if (!m_gridVboInitialized) {
+        // First time: allocate full buffer + set vertex attributes once
+        m_gridVbo.allocate(GRID_MAX_VERTICES * static_cast<int>(sizeof(GlVertex)));
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(GlVertex), nullptr);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GlVertex),
+                              reinterpret_cast<void*>(2 * sizeof(float)));
+        m_gridVboInitialized = true;
+    }
+
+    // SubData: update data without reallocating GPU memory
+    if (m_gridVertexCount > 0) {
+        m_gridVbo.write(0, gridVerts.data(),
+                        static_cast<int>(gridVerts.size() * sizeof(GlVertex)));
+    }
 
     m_gridVbo.release();
     m_gridVao.release();

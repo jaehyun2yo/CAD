@@ -10,6 +10,7 @@
 #include <QWheelEvent>
 #include <QKeyEvent>
 #include <QPainter>
+#include <QElapsedTimer>
 #include <memory>
 
 namespace yjcad {
@@ -26,6 +27,7 @@ public:
     ToolManager& toolManager() { return *m_toolMgr; }
     void zoomToFit();
     void refreshEntities();
+    void refreshSelectionColors();
 
     /// Theme control
     void setDarkTheme(bool dark);
@@ -93,6 +95,12 @@ private:
     std::vector<EntityId> m_textEntityIds;
     bool m_textIdsDirty = true;
     void rebuildTextEntityCache();
+
+    // Zoom debounce — suppress snap during active zooming
+    QElapsedTimer m_zoomTimer;
+    bool m_isZooming = false;
+    static constexpr int ZOOM_DEBOUNCE_MS = 150;
+    bool isActivelyZooming() const;
 };
 
 } // namespace yjcad

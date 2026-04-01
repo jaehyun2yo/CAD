@@ -27,8 +27,8 @@ public:
     Entity* entity(EntityId id);
     const Entity* entity(EntityId id) const;
 
-    /// Get all entity IDs
-    std::vector<EntityId> entityIds() const;
+    /// Get all entity IDs (cached — no heap allocation per call)
+    const std::vector<EntityId>& entityIds() const;
 
     /// Number of entities
     size_t entityCount() const { return m_entities.size(); }
@@ -74,6 +74,10 @@ public:
 
 private:
     std::unordered_map<EntityId, std::unique_ptr<Entity>> m_entities;
+    mutable std::vector<EntityId> m_cachedIds;
+    mutable bool m_idsCacheDirty = true;
+    void invalidateIdCache() { m_idsCacheDirty = true; }
+
     LayerManager m_layers;
     Selection m_selection;
     CommandHistory m_history;
