@@ -83,7 +83,7 @@ BoundingBox Camera::visibleBounds() const {
     };
 }
 
-QMatrix4x4 Camera::projectionMatrix() const {
+const QMatrix4x4& Camera::projectionMatrix() const {
     return m_projMatrix;
 }
 

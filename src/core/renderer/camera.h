@@ -40,7 +40,7 @@ public:
     BoundingBox visibleBounds() const;
 
     /// Get the projection matrix for OpenGL
-    QMatrix4x4 projectionMatrix() const;
+    const QMatrix4x4& projectionMatrix() const;
 
 private:
     void updateMatrix();

@@ -47,8 +47,8 @@ public:
     /// Lightweight refresh: only update colors (for selection changes)
     void refreshColors(const Document& doc);
 
-    /// Render all entities + grid
-    void render(const Camera& camera);
+    /// Render all entities + grid. Set zooming=true to skip grid rebuild.
+    void render(const Camera& camera, bool zooming = false);
 
     /// Cleanup OpenGL resources
     void cleanup();
@@ -109,6 +109,9 @@ public:
 private:
     // Cached entity vertices for partial updates
     std::vector<GlVertex> m_entityVerts;
+
+    // Persistent grid vertex buffer (reused across frames — no heap alloc)
+    std::vector<GlVertex> m_gridVerts;
 
     // Grid cache — avoid rebuilding every frame
     Point2D m_lastGridCenter{0, 0};

@@ -31,15 +31,18 @@ void CadCanvas::resizeGL(int w, int h) {
 }
 
 void CadCanvas::paintGL() {
-    m_renderer.render(m_camera);
+    bool zooming = isActivelyZooming();
+    m_renderer.render(m_camera, zooming);
 
     // Skip QPainter entirely when no text or actively zooming (avoids GL flush)
-    if (m_textIdsDirty) rebuildTextEntityCache();
-    if (!m_textEntityIds.empty() && !isActivelyZooming()) {
-        QPainter painter(this);
-        painter.setRenderHint(QPainter::Antialiasing);
-        renderTextOverlay(painter);
-        painter.end();
+    if (!zooming) {
+        if (m_textIdsDirty) rebuildTextEntityCache();
+        if (!m_textEntityIds.empty()) {
+            QPainter painter(this);
+            painter.setRenderHint(QPainter::Antialiasing);
+            renderTextOverlay(painter);
+            painter.end();
+        }
     }
 }
 
@@ -277,7 +280,7 @@ void CadCanvas::mouseMoveEvent(QMouseEvent* event) {
     }
     Point2D snappedWorld = snapResult.valid ? snapResult.point : world;
 
-    if (m_toolMgr->mouseMove(snappedWorld)) {
+    if (!isActivelyZooming() && m_toolMgr->mouseMove(snappedWorld)) {
         // Update rubber-band preview in renderer
         auto* tool = m_toolMgr->currentTool();
         if (tool) {

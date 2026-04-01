@@ -400,6 +400,15 @@ void GlRenderer::getEntityColor(const Entity* entity, float& r, float& g, float&
     b = EntityColors::DEFAULT_B;
 }
 
+/// Compute adaptive segment count: ~1 segment per 4 screen pixels of arc
+static int adaptiveSegments(double radius, double spanRadians = 2.0 * PI) {
+    // Use a fixed heuristic based on radius alone (no zoom dependency,
+    // so VBO doesn't need rebuild on zoom). Larger circles get more segments.
+    double circumference = radius * std::abs(spanRadians);
+    int segs = std::max(8, std::min(64, static_cast<int>(circumference * 0.5)));
+    return segs;
+}
+
 void GlRenderer::tessellateCircle(const CircleEntity* circle, std::vector<GlVertex>& verts,
                                     const LayerManager* layers) {
     float r, g, b;
@@ -407,10 +416,11 @@ void GlRenderer::tessellateCircle(const CircleEntity* circle, std::vector<GlVert
     double cx = circle->center().x;
     double cy = circle->center().y;
     double rad = circle->radius();
+    int segments = adaptiveSegments(rad);
 
-    for (int i = 0; i < ARC_SEGMENTS; ++i) {
-        double a1 = 2.0 * PI * i / ARC_SEGMENTS;
-        double a2 = 2.0 * PI * (i + 1) / ARC_SEGMENTS;
+    for (int i = 0; i < segments; ++i) {
+        double a1 = 2.0 * PI * i / segments;
+        double a2 = 2.0 * PI * (i + 1) / segments;
         verts.push_back({static_cast<float>(cx + rad * std::cos(a1)),
                          static_cast<float>(cy + rad * std::sin(a1)), r, g, b});
         verts.push_back({static_cast<float>(cx + rad * std::cos(a2)),
@@ -430,7 +440,7 @@ void GlRenderer::tessellateArc(const ArcEntity* arc, std::vector<GlVertex>& vert
 
     if (endRad <= startRad) endRad += 2.0 * PI;
     double span = endRad - startRad;
-    int segments = std::max(4, static_cast<int>(ARC_SEGMENTS * span / (2.0 * PI)));
+    int segments = adaptiveSegments(rad, span);
 
     for (int i = 0; i < segments; ++i) {
         double a1 = startRad + span * i / segments;
@@ -591,7 +601,7 @@ void GlRenderer::refreshColors(const Document& doc) {
 }
 
 void GlRenderer::buildGridVertices(const Camera& camera) {
-    std::vector<GlVertex> gridVerts;
+    m_gridVerts.clear(); // reuse existing capacity — zero heap alloc
     auto bounds = camera.visibleBounds();
 
     // Adaptive grid spacing based on zoom
@@ -607,34 +617,30 @@ void GlRenderer::buildGridVertices(const Camera& camera) {
     double startX = std::floor(bounds.min.x / spacing) * spacing;
     double startY = std::floor(bounds.min.y / spacing) * spacing;
 
-    // Vertical grid lines
     for (double x = startX; x <= bounds.max.x; x += spacing) {
-        gridVerts.push_back({static_cast<float>(x), static_cast<float>(bounds.min.y), gr, gg, gb});
-        gridVerts.push_back({static_cast<float>(x), static_cast<float>(bounds.max.y), gr, gg, gb});
+        m_gridVerts.push_back({static_cast<float>(x), static_cast<float>(bounds.min.y), gr, gg, gb});
+        m_gridVerts.push_back({static_cast<float>(x), static_cast<float>(bounds.max.y), gr, gg, gb});
     }
-    // Horizontal grid lines
     for (double y = startY; y <= bounds.max.y; y += spacing) {
-        gridVerts.push_back({static_cast<float>(bounds.min.x), static_cast<float>(y), gr, gg, gb});
-        gridVerts.push_back({static_cast<float>(bounds.max.x), static_cast<float>(y), gr, gg, gb});
+        m_gridVerts.push_back({static_cast<float>(bounds.min.x), static_cast<float>(y), gr, gg, gb});
+        m_gridVerts.push_back({static_cast<float>(bounds.max.x), static_cast<float>(y), gr, gg, gb});
     }
 
     // Origin cross (brighter)
     float ox = 0.4f;
-    gridVerts.push_back({static_cast<float>(bounds.min.x), 0.0f, ox, 0.0f, 0.0f});
-    gridVerts.push_back({static_cast<float>(bounds.max.x), 0.0f, ox, 0.0f, 0.0f});
-    gridVerts.push_back({0.0f, static_cast<float>(bounds.min.y), 0.0f, ox, 0.0f});
-    gridVerts.push_back({0.0f, static_cast<float>(bounds.max.y), 0.0f, ox, 0.0f});
+    m_gridVerts.push_back({static_cast<float>(bounds.min.x), 0.0f, ox, 0.0f, 0.0f});
+    m_gridVerts.push_back({static_cast<float>(bounds.max.x), 0.0f, ox, 0.0f, 0.0f});
+    m_gridVerts.push_back({0.0f, static_cast<float>(bounds.min.y), 0.0f, ox, 0.0f});
+    m_gridVerts.push_back({0.0f, static_cast<float>(bounds.max.y), 0.0f, ox, 0.0f});
 
-    // Clamp to pre-allocated max
-    if (gridVerts.size() > static_cast<size_t>(GRID_MAX_VERTICES))
-        gridVerts.resize(GRID_MAX_VERTICES);
-    m_gridVertexCount = static_cast<int>(gridVerts.size());
+    if (m_gridVerts.size() > static_cast<size_t>(GRID_MAX_VERTICES))
+        m_gridVerts.resize(GRID_MAX_VERTICES);
+    m_gridVertexCount = static_cast<int>(m_gridVerts.size());
 
     m_gridVao.bind();
     m_gridVbo.bind();
 
     if (!m_gridVboInitialized) {
-        // First time: allocate full buffer + set vertex attributes once
         m_gridVbo.allocate(GRID_MAX_VERTICES * static_cast<int>(sizeof(GlVertex)));
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(GlVertex), nullptr);
@@ -644,17 +650,16 @@ void GlRenderer::buildGridVertices(const Camera& camera) {
         m_gridVboInitialized = true;
     }
 
-    // SubData: update data without reallocating GPU memory
     if (m_gridVertexCount > 0) {
-        m_gridVbo.write(0, gridVerts.data(),
-                        static_cast<int>(gridVerts.size() * sizeof(GlVertex)));
+        m_gridVbo.write(0, m_gridVerts.data(),
+                        static_cast<int>(m_gridVerts.size() * sizeof(GlVertex)));
     }
 
     m_gridVbo.release();
     m_gridVao.release();
 }
 
-void GlRenderer::render(const Camera& camera) {
+void GlRenderer::render(const Camera& camera, bool zooming) {
     if (!m_initialized) return;
 
     glClearColor(m_bgR, m_bgG, m_bgB, 1.0f);
@@ -663,16 +668,15 @@ void GlRenderer::render(const Camera& camera) {
     m_shader->bind();
     m_shader->setUniformValue(m_projLoc, camera.projectionMatrix());
 
-    // Draw grid first (behind entities) — only rebuild if camera changed
+    // Grid: skip rebuild during active zoom, draw stale grid instead
     if (m_gridEnabled) {
-        if (isGridCacheDirty(camera)) {
+        if (!zooming && isGridCacheDirty(camera)) {
             buildGridVertices(camera);
             updateGridCache(camera);
         }
         if (m_gridVertexCount > 0) {
             m_gridVao.bind();
             glDrawArrays(GL_LINES, 0, m_gridVertexCount);
-            m_gridVao.release();
         }
     }
 
@@ -680,14 +684,12 @@ void GlRenderer::render(const Camera& camera) {
     if (m_entityVertexCount > 0) {
         m_entityVao.bind();
         glDrawArrays(GL_LINES, 0, m_entityVertexCount);
-        m_entityVao.release();
     }
 
     // Draw preview (rubber-band lines) on top
     if (m_previewVertexCount > 0) {
         m_previewVao.bind();
         glDrawArrays(GL_LINES, 0, m_previewVertexCount);
-        m_previewVao.release();
     }
 
     m_shader->release();
