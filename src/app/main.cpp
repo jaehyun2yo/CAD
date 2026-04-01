@@ -210,13 +210,13 @@ int main(int argc, char* argv[]) {
 
         qInfo() << "Loading DXF:" << path;
 
-        // Show progress dialog
+        // Background thread parsing into temp Document (no data race with renderer)
         auto* progressDlg = new QProgressDialog("DXF 파일 로드 중...", "취소", 0, 100, &window);
         progressDlg->setWindowModality(Qt::WindowModal);
-        progressDlg->setMinimumDuration(500); // show only if takes >500ms
+        progressDlg->setMinimumDuration(500);
         progressDlg->setValue(0);
 
-        auto* task = new DxfLoadTask(doc, path, &window);
+        auto* task = new DxfLoadTask(path, &window);
 
         QObject::connect(task, &DxfLoadTask::progress,
             [progressDlg](int percent, const QString& msg) {
@@ -234,6 +234,12 @@ int main(int argc, char* argv[]) {
                     QMessageBox::critical(&window, "오류", "DXF 로드 실패: " + msg);
                     qWarning() << "DXF load failed:" << msg;
                 } else {
+                    // Transfer from temp document on main thread (safe)
+                    auto tempDoc = task->takeDocument();
+                    if (tempDoc) {
+                        doc.takeFrom(*tempDoc);
+                        doc.setFilePath(path.toStdString());
+                    }
                     canvas->refreshEntities();
                     canvas->zoomToFit();
                     updateTitle();

@@ -41,22 +41,47 @@ void CadCanvas::paintGL() {
 }
 
 void CadCanvas::renderTextOverlay(QPainter& painter) {
-    for (EntityId id : m_doc.entityIds()) {
+    // Use cached text entity list instead of iterating all entities
+    if (m_textIdsDirty) rebuildTextEntityCache();
+    if (m_textEntityIds.empty()) return;
+
+    // Pre-compute viewport bounds for culling
+    auto vpBounds = m_camera.visibleBounds();
+    int vpW = width(), vpH = height();
+
+    // Reuse a single QFont object (avoid per-entity allocation)
+    QFont font("Malgun Gothic", 12);
+    font.setStyleHint(QFont::SansSerif);
+    int lastFontSize = 12;
+
+    for (EntityId id : m_textEntityIds) {
         const Entity* entity = m_doc.entity(id);
         if (!entity || !entity->isVisible()) continue;
-        if (entity->type() != EntityType::Text) continue;
 
         auto* text = static_cast<const TextEntity*>(entity);
-        QPointF screenPos = m_camera.worldToScreen(text->position());
+
+        // Viewport culling: skip text outside visible bounds
+        const auto& pos = text->position();
+        if (pos.x < vpBounds.min.x || pos.x > vpBounds.max.x ||
+            pos.y < vpBounds.min.y || pos.y > vpBounds.max.y) continue;
+
+        QPointF screenPos = m_camera.worldToScreen(pos);
+
+        // Skip if off-screen (with margin for text width)
+        if (screenPos.x() < -200 || screenPos.x() > vpW + 200 ||
+            screenPos.y() < -200 || screenPos.y() > vpH + 200) continue;
 
         // Compute font size from world height * zoom
         double fontSize = text->height() * m_camera.zoom();
         if (fontSize < 4.0) continue; // too small to read
         fontSize = std::min(fontSize, 200.0); // cap max size
 
-        QFont font("Malgun Gothic", static_cast<int>(fontSize));
-        font.setStyleHint(QFont::SansSerif);
-        painter.setFont(font);
+        int intFontSize = static_cast<int>(fontSize);
+        if (intFontSize != lastFontSize) {
+            font.setPointSize(intFontSize);
+            painter.setFont(font);
+            lastFontSize = intFontSize;
+        }
 
         // Color based on selection/classification
         QColor color;
@@ -123,7 +148,19 @@ void CadCanvas::refreshEntities() {
     makeCurrent();
     m_renderer.rebuildFromDocument(m_doc);
     doneCurrent();
+    m_textIdsDirty = true;
     update();
+}
+
+void CadCanvas::rebuildTextEntityCache() {
+    m_textEntityIds.clear();
+    for (EntityId id : m_doc.entityIds()) {
+        const Entity* e = m_doc.entity(id);
+        if (e && e->type() == EntityType::Text) {
+            m_textEntityIds.push_back(id);
+        }
+    }
+    m_textIdsDirty = false;
 }
 
 void CadCanvas::zoomToFit() {

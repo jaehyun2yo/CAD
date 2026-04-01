@@ -88,6 +88,11 @@ private:
     // Last committed point used for Ortho constraint and Perp/Tan snaps
     Point2D m_lastCommittedPt;
     bool    m_hasLastCommittedPt = false;
+
+    // Cached text entity IDs — rebuilt when entities change, not every frame
+    std::vector<EntityId> m_textEntityIds;
+    bool m_textIdsDirty = true;
+    void rebuildTextEntityCache();
 };
 
 } // namespace yjcad

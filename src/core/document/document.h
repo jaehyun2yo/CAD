@@ -69,6 +69,9 @@ public:
     /// Clear all entities, layers, selection, history
     void clear();
 
+    /// Take all data from another document (move semantics, clears source)
+    void takeFrom(Document& other);
+
 private:
     std::unordered_map<EntityId, std::unique_ptr<Entity>> m_entities;
     LayerManager m_layers;

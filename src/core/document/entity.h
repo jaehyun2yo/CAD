@@ -98,8 +98,22 @@ public:
     int color() const { return m_color; }
     void setColor(int color) { m_color = color; }
 
+    /// 24-bit true color (0xRRGGBB). -1 means use ACI color instead.
+    int trueColor() const { return m_trueColor; }
+    void setTrueColor(int rgb) { m_trueColor = rgb; }
+    bool hasTrueColor() const { return m_trueColor >= 0; }
+
     double lineWidth() const { return m_lineWidth; }
     void setLineWidth(double w) { m_lineWidth = w; }
+
+    const std::string& lineType() const { return m_lineType; }
+    void setLineType(const std::string& lt) { m_lineType = lt; }
+
+    double lineTypeScale() const { return m_lineTypeScale; }
+    void setLineTypeScale(double s) { m_lineTypeScale = s; }
+
+    int transparency() const { return m_transparency; }
+    void setTransparency(int t) { m_transparency = t; }
 
     LineClassification classification() const { return m_classification; }
     void setClassification(LineClassification c) { m_classification = c; }
@@ -132,8 +146,12 @@ private:
     EntityId m_id;
     EntityType m_type;
     std::string m_layerName = "0";
-    int m_color = 7; // white in AutoCAD convention
+    int m_color = 7; // AutoCAD Color Index (ACI)
+    int m_trueColor = -1; // 24-bit RGB (0xRRGGBB), -1 = use ACI
     double m_lineWidth = 0.0;
+    std::string m_lineType; // DXF linetype name (e.g., "DASHED", "CENTER")
+    double m_lineTypeScale = 1.0;
+    int m_transparency = 0; // 0 = opaque, 100 = fully transparent
     LineClassification m_classification = LineClassification::Unknown;
     bool m_visible = true;
     bool m_selected = false;

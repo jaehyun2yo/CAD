@@ -78,6 +78,16 @@ void Document::clear() {
     m_filePath.clear();
 }
 
+void Document::takeFrom(Document& other) {
+    clear();
+    m_entities = std::move(other.m_entities);
+    m_layers = std::move(other.m_layers);
+    m_nextId = other.m_nextId;
+    m_filePath = std::move(other.m_filePath);
+    m_modified = other.m_modified;
+    other.clear();
+}
+
 // ── AddEntityCommand ──
 
 AddEntityCommand::AddEntityCommand(Document& doc, std::unique_ptr<Entity> entity)

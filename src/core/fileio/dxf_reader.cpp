@@ -1,5 +1,6 @@
 #include "dxf_reader.h"
 #include <filesystem>
+#include <stdexcept>
 
 namespace yjcad {
 
@@ -10,21 +11,34 @@ DxfLoadResult DxfReader::load(const std::string& filePath) {
     m_entityCount = 0;
     m_warnings.clear();
 
-    // Validate file exists
-    if (!std::filesystem::exists(filePath)) {
-        result.errorMessage = "File not found: " + filePath;
+    try {
+        // Convert UTF-8 path to native wide path for Windows filesystem APIs
+        std::filesystem::path fsPath = std::filesystem::u8path(filePath);
+
+        if (!std::filesystem::exists(fsPath)) {
+            result.errorMessage = "File not found: " + filePath;
+            return result;
+        }
+
+        // Convert to local narrow encoding (CP949) for libdxfrw's fopen()
+        std::string localPath = fsPath.string();
+
+        // Clear document before loading
+        m_doc.clear();
+
+        // Parse DXF using libdxfrw
+        dxfRW reader(localPath.c_str());
+        bool ok = reader.read(this, false); // false = ASCII mode
+
+        if (!ok) {
+            result.errorMessage = "Failed to parse DXF file: " + filePath;
+            return result;
+        }
+    } catch (const std::exception& e) {
+        result.errorMessage = std::string("DXF parse exception: ") + e.what();
         return result;
-    }
-
-    // Clear document before loading
-    m_doc.clear();
-
-    // Parse DXF using libdxfrw
-    dxfRW reader(filePath.c_str());
-    bool ok = reader.read(this, false); // false = ASCII mode
-
-    if (!ok) {
-        result.errorMessage = "Failed to parse DXF file: " + filePath;
+    } catch (...) {
+        result.errorMessage = "DXF parse unknown exception";
         return result;
     }
 
@@ -43,6 +57,23 @@ void DxfReader::applyCommonProperties(Entity* entity, const DRW_Entity& drwEntit
     entity->setLayerName(drwEntity.layer);
     entity->setColor(drwEntity.color);
     entity->setLineWidth(drwEntity.lWeight / 100.0); // DXF stores in 1/100mm
+
+    // Linetype
+    if (!drwEntity.lineType.empty() && drwEntity.lineType != "BYLAYER") {
+        entity->setLineType(drwEntity.lineType);
+    }
+    entity->setLineTypeScale(drwEntity.ltypeScale);
+
+    // 24-bit true color (takes precedence over ACI when >= 0)
+    if (drwEntity.color24 >= 0) {
+        entity->setTrueColor(drwEntity.color24);
+    }
+
+    // Transparency (DXF stores as 0x020000TT where TT is 0-255)
+    if (drwEntity.transparency != 0) {
+        int alpha = drwEntity.transparency & 0xFF;
+        entity->setTransparency(alpha * 100 / 255); // normalize to 0-100
+    }
 
     // Ensure layer exists
     if (!m_doc.layers().layer(drwEntity.layer)) {
@@ -63,6 +94,10 @@ void DxfReader::addLayer(const DRW_Layer& data) {
         layer->setVisible(!data.plotF); // plotF=off means not visible
         layer->setFrozen(data.flags & 0x01);
         layer->setLocked(data.flags & 0x04);
+        if (!data.lineType.empty()) {
+            layer->setLineType(data.lineType);
+        }
+        layer->setLineWeight(data.lWeight / 100.0);
     }
 }
 
@@ -102,8 +137,10 @@ void DxfReader::addLWPolyline(const DRW_LWPolyline& data) {
     std::vector<Point2D> vertices;
     vertices.reserve(data.vertlist.size());
     for (const auto& vertex : data.vertlist) {
+        if (!vertex) continue;
         vertices.emplace_back(vertex->x, vertex->y);
     }
+    if (vertices.empty()) return; // skip degenerate polyline
     bool closed = (data.flags & 0x01) != 0;
     auto entity = std::make_unique<PolylineEntity>(id, vertices, closed);
     applyCommonProperties(entity.get(), data);
@@ -117,8 +154,10 @@ void DxfReader::addPolyline(const DRW_Polyline& data) {
     std::vector<Point2D> vertices;
     vertices.reserve(data.vertlist.size());
     for (const auto& vertex : data.vertlist) {
+        if (!vertex) continue;
         vertices.emplace_back(vertex->basePoint.x, vertex->basePoint.y);
     }
+    if (vertices.empty()) return; // skip degenerate polyline
     bool closed = (data.flags & 0x01) != 0;
     auto entity = std::make_unique<PolylineEntity>(id, vertices, closed);
     applyCommonProperties(entity.get(), data);

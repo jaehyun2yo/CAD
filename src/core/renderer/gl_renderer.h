@@ -29,6 +29,9 @@ struct EntityColors {
     static constexpr float GRID_R = 0.2f, GRID_G = 0.2f, GRID_B = 0.2f;          // dark gray
 };
 
+/// Convert AutoCAD Color Index (ACI) to RGB floats
+void aciToRgb(int aci, float& r, float& g, float& b);
+
 /// OpenGL Renderer — renders Document entities using VBOs
 class GlRenderer : protected QOpenGLFunctions_3_3_Core {
 public:
@@ -61,11 +64,14 @@ public:
 private:
     void buildEntityVertices(const Document& doc);
     void buildGridVertices(const Camera& camera);
-    void getEntityColor(const Entity* entity, float& r, float& g, float& b);
+    void getEntityColor(const Entity* entity, float& r, float& g, float& b,
+                        const LayerManager* layers = nullptr);
 
     // Tessellate curved entities into line segments
-    void tessellateCircle(const CircleEntity* circle, std::vector<GlVertex>& verts);
-    void tessellateArc(const ArcEntity* arc, std::vector<GlVertex>& verts);
+    void tessellateCircle(const CircleEntity* circle, std::vector<GlVertex>& verts,
+                          const LayerManager* layers = nullptr);
+    void tessellateArc(const ArcEntity* arc, std::vector<GlVertex>& verts,
+                       const LayerManager* layers = nullptr);
 
     bool m_initialized = false;
 
@@ -100,6 +106,15 @@ public:
 private:
     // Cached entity vertices for partial updates
     std::vector<GlVertex> m_entityVerts;
+
+    // Grid cache — avoid rebuilding every frame
+    Point2D m_lastGridCenter{0, 0};
+    double m_lastGridZoom = -1.0;
+    int m_lastGridVpW = 0, m_lastGridVpH = 0;
+    bool m_gridDirty = true;
+
+    bool isGridCacheDirty(const Camera& camera) const;
+    void updateGridCache(const Camera& camera);
 
     // Background color
     float m_bgR = 0.0f, m_bgG = 0.0f, m_bgB = 0.0f;

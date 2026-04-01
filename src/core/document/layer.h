@@ -17,10 +17,15 @@ public:
     bool isLocked() const { return m_locked; }
     bool isFrozen() const { return m_frozen; }
 
+    const std::string& lineType() const { return m_lineType; }
+    double lineWeight() const { return m_lineWeight; }
+
     void setColor(int color) { m_color = color; }
     void setVisible(bool v) { m_visible = v; }
     void setLocked(bool l) { m_locked = l; }
     void setFrozen(bool f) { m_frozen = f; }
+    void setLineType(const std::string& lt) { m_lineType = lt; }
+    void setLineWeight(double w) { m_lineWeight = w; }
 
 private:
     std::string m_name;
@@ -28,6 +33,8 @@ private:
     bool m_visible = true;
     bool m_locked = false;
     bool m_frozen = false;
+    std::string m_lineType;
+    double m_lineWeight = 0.0;
 };
 
 /// Layer manager — owns all layers
